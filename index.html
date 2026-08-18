@@ -75,6 +75,8 @@
   .habit-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
   .streak { font-size: 12px; color: var(--warn); font-weight: 700; white-space: nowrap; }
   .habit-menu { color: var(--muted); font-size: 18px; padding: 4px 6px; background:none;border:none;cursor:pointer;}
+  .note-btn { background:none;border:none;cursor:pointer;font-size:14px;color:var(--muted);padding:4px 4px;opacity:.55;}
+  .note-btn.has { opacity:1; }
   .progress-track { height: 6px; background: var(--surface-2); border-radius: 4px; margin-top: 7px; overflow: hidden;}
   .progress-fill { height: 100%; background: var(--accent); border-radius: 4px; }
 
@@ -284,10 +286,28 @@ function load(){
 function save(){ localStorage.setItem('energy_v1', JSON.stringify(state)); }
 
 function logFor(date){
-  if(!state.logs[date]) state.logs[date] = {habits:{},supps:{},extras:[],ratings:{},incidents:[]};
+  if(!state.logs[date]) state.logs[date] = {habits:{},supps:{},extras:[],ratings:{},incidents:[],notes:{}};
   const l = state.logs[date];
-  l.habits ||= {}; l.supps ||= {}; l.extras ||= []; l.ratings ||= {}; l.incidents ||= [];
+  l.habits ||= {}; l.supps ||= {}; l.extras ||= []; l.ratings ||= {}; l.incidents ||= []; l.notes ||= {};
   return l;
+}
+// generyczna notatka na dany dzień dla dowolnego elementu (key: habitId / 'supp:'+id / 'stack')
+function getNote(key){ return logFor(currentDate).notes[key]||''; }
+function openNote(key,title){
+  openModal('📝 Notatka · '+title,`<label>Na dziś (${currentDate})</label>
+    <textarea class="field-note" id="mNote" style="min-height:90px;" placeholder="np. wziąłem po jedzeniu, bo na czczo mnie mdliło...">${esc(getNote(key))}</textarea>`,
+    ()=>{ const v=val('mNote'); const l=logFor(currentDate);
+      if(v) l.notes[key]=v; else delete l.notes[key]; render(); });
+}
+// mały przycisk notatki (📝 = ma treść, ✎ = pusty)
+function noteBtn(key,title){
+  const has=!!getNote(key);
+  const b=document.createElement('button');
+  b.className='note-btn'+(has?' has':'');
+  b.textContent=has?'📝':'✎';
+  b.title=has?'Notatka: '+getNote(key):'Dodaj notatkę';
+  b.addEventListener('click',(e)=>{ e.stopPropagation(); openNote(key,title); });
+  return b;
 }
 const uid = () => Math.random().toString(36).slice(2,9);
 function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show');
@@ -384,8 +404,9 @@ function habitEl(h,done,bad,subText,slip){
     <div class="habit-body"><div class="habit-name">${esc(h.name)}</div>
     <div class="habit-sub">${subText}</div></div>
     <button class="habit-menu">⋯</button>`;
+  el.insertBefore(noteBtn(h.id,h.name), el.querySelector('.habit-menu'));
   el.addEventListener('click',(e)=>{
-    if(e.target.classList.contains('habit-menu')) return;
+    if(e.target.classList.contains('habit-menu')||e.target.classList.contains('note-btn')) return;
     const l=logFor(currentDate);
     l.habits[h.id]=!(l.habits[h.id]===true);
     render();
@@ -407,7 +428,10 @@ function renderSupps(l){
     <div class="habit-body"><div class="habit-name">Stack suplementów</div>
     <div class="habit-sub">${takenCount>0?takenCount+' wzięte dziś':'Kliknij, by wziąć cały stack'}</div></div>
     <span style="color:var(--muted);font-size:18px;">▾</span>`;
-  head.addEventListener('click',()=>{
+  head.insertBefore(noteBtn('stack','Stack suplementów'), head.lastElementChild);
+  head.querySelector('.note-btn').addEventListener('click',e=>e.stopPropagation());
+  head.addEventListener('click',(e)=>{
+    if(e.target.classList.contains('note-btn')) return;
     const l=logFor(currentDate);
     const anyMissing=state.supps.some(s=>!l.supps[s.id]?.taken);
     state.supps.forEach(s=>{
@@ -426,6 +450,7 @@ function renderSupps(l){
       <div class="supp-name">${esc(s.name)}</div>
       <input class="supp-time" type="time" value="${st.time||s.defaultTime}">
       <button class="habit-menu" style="font-size:15px;">⋯</button>`;
+    row.insertBefore(noteBtn('supp:'+s.id,s.name), row.querySelector('.habit-menu'));
     row.querySelector('.supp-check').addEventListener('click',()=>{
       const l=logFor(currentDate);
       const cur=l.supps[s.id]?.taken||false;
@@ -745,12 +770,19 @@ document.getElementById('aiBtn').addEventListener('click',()=>{
   const res=document.getElementById('aiResult');
   const series=daySeries();
   const withData=series.filter(s=>s.work!=null||s.energy!=null);
+  let noteCount=0;
+  Object.values(state.logs).forEach(l=>{
+    noteCount+=Object.keys(l.notes||{}).length + (l.ratings?.note?1:0)
+      + (l.incidents||[]).filter(i=>i.trigger).length;
+  });
   res.innerHTML=`<div class="corr" style="border-color:var(--purple);">
     <div class="headline">✨ <b>Analiza AI (podgląd prototypu)</b></div>
     <div style="font-size:13px;color:var(--muted);margin-top:8px;line-height:1.5;">
-    W gotowej apce tu wejdzie prawdziwe AI. Dostanie Twoje ${withData.length} dni danych i poszuka
-    złożonych układów: kombinacji (mało snu + dużo scrolla wieczorem → gorsza praca),
-    efektów opóźnionych (dzień po treningu) i wzorców z Twoich notatek.
+    W gotowej apce tu wejdzie prawdziwe AI. Dostanie Twoje ${withData.length} dni danych
+    <b style="color:var(--purple)">+ ${noteCount} notatek</b> (przy nawykach, suplementach, incydentach i dniach)
+    i poszuka złożonych układów: kombinacji (mało snu + dużo scrolla wieczorem → gorsza praca),
+    efektów opóźnionych (dzień po treningu) oraz wzorców z Twoich notatek —
+    np. „gdy piszesz przy magnezie »wziąłem po jedzeniu«, sen jest lepszy".
     Zawsze z etykietą „to hipoteza / ile danych", żeby nie wróżyć z fusów.</div>
     <div style="font-size:13px;margin-top:10px;">
     ${withData.length<7?'📉 Na razie masz za mało dni — nakarm apkę tydzień-dwa, a analiza będzie sensowna.':'✅ Masz już zaczątek danych — w wersji produkcyjnej to zapytanie poszłoby do modelu AI.'}
