@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import {
   SafeAreaView, ScrollView, View, Text, TextInput, TouchableOpacity,
-  StyleSheet, Modal, StatusBar, Platform,
+  StyleSheet, Modal, StatusBar, Platform, Alert, Switch,
 } from 'react-native';
 import Slider from '@react-native-community/slider';
 import { C } from './src/theme';
@@ -9,15 +9,20 @@ import {
   loadState, persist, logFor, goodStreak, badCleanStreak, weeklyCount,
   correlations, confLevel, statSummary, hourHistogram, daySeries,
   todayISO, isoOf, uid, nowHM, DOPAMINE_PRESETS, TRIGGERS,
+  loadSettings, saveSettings, parseImport,
 } from './src/store';
+import { analyzeWithAI } from './src/ai';
+import { applyReminders, sendTestNotification } from './src/notify';
+import { shareBackup } from './src/backup';
 
 export default function App() {
   const [state, setState] = useState(null);
+  const [settings, setSettings] = useState(null);
   const [date, setDate] = useState(todayISO());
   const [tab, setTab] = useState('today');
   const [modal, setModal] = useState(null); // {title, fields, onSave} lub {custom}
 
-  useEffect(() => { loadState().then(setState); }, []);
+  useEffect(() => { loadState().then(setState); loadSettings().then(setSettings); }, []);
 
   const commit = useCallback((mutator) => {
     setState((prev) => {
@@ -28,7 +33,16 @@ export default function App() {
     });
   }, []);
 
-  if (!state) return <SafeAreaView style={s.root}><Text style={{ color: C.muted, margin: 30 }}>Ładowanie…</Text></SafeAreaView>;
+  const updateSettings = useCallback((mutator) => {
+    setSettings((prev) => {
+      const next = JSON.parse(JSON.stringify(prev));
+      mutator(next);
+      saveSettings(next);
+      return next;
+    });
+  }, []);
+
+  if (!state || !settings) return <SafeAreaView style={s.root}><Text style={{ color: C.muted, margin: 30 }}>Ładowanie…</Text></SafeAreaView>;
 
   const l = logFor(state, date);
   const isToday = date === todayISO();
@@ -60,14 +74,15 @@ export default function App() {
         </View>
       </View>
 
-      {tab === 'today'
-        ? <TodayView state={state} date={date} l={l} commit={commit} setModal={setModal} />
-        : <StatsView state={state} />}
+      {tab === 'today' && <TodayView state={state} date={date} l={l} commit={commit} setModal={setModal} />}
+      {tab === 'stats' && <StatsView state={state} settings={settings} goToSettings={() => setTab('settings')} />}
+      {tab === 'settings' && <SettingsView state={state} setState={setState} settings={settings} updateSettings={updateSettings} setModal={setModal} />}
 
       {/* Tabbar */}
       <View style={s.tabbar}>
         <TabBtn icon="✅" label="Dziś" active={tab === 'today'} onPress={() => setTab('today')} />
         <TabBtn icon="📊" label="Statystyki" active={tab === 'stats'} onPress={() => setTab('stats')} />
+        <TabBtn icon="⚙️" label="Ustawienia" active={tab === 'settings'} onPress={() => setTab('settings')} />
       </View>
 
       <FormModal modal={modal} setModal={setModal} />
@@ -314,13 +329,20 @@ function Ratings({ date, l, commit }) {
 }
 
 /* ==================== STATYSTYKI ==================== */
-function StatsView({ state }) {
+function StatsView({ state, settings, goToSettings }) {
   const sum = statSummary(state);
   const corr = correlations(state);
   const hours = hourHistogram(state);
   const maxH = Math.max(1, ...hours);
   const withData = daySeries(state).filter((d) => d.work != null || d.energy != null).length;
-  const [ai, setAi] = useState(false);
+  const [aiState, setAiState] = useState(null); // null | 'loading' | {text} | {error}
+
+  const runAI = async () => {
+    if (!settings.apiKey) { setAiState({ error: 'Brak klucza API. Wejdź w Ustawienia i wklej klucz Anthropic.' }); return; }
+    setAiState('loading');
+    const res = await analyzeWithAI(state, settings.apiKey);
+    setAiState(res.error ? { error: res.error } : { text: res.text });
+  };
 
   const cal = [];
   for (let i = 29; i >= 0; i--) {
@@ -369,20 +391,117 @@ function StatsView({ state }) {
         );
       }) : <Text style={s.empty}>Za mało danych, żeby coś wyłapać. Klikaj codziennie kilka dni — radar sam się odezwie.</Text>}
 
-      <TouchableOpacity style={s.aiBtn} onPress={() => setAi(true)}><Text style={s.aiBtnTxt}>✨ Przeanalizuj z AI (głębiej)</Text></TouchableOpacity>
-      {ai && (
-        <View style={[s.corr, { borderColor: C.purple }]}>
-          <Text style={s.corrHead}>✨ <Text style={{ fontWeight: '700' }}>Analiza AI (podgląd prototypu)</Text></Text>
-          <Text style={{ color: C.muted, fontSize: 13, marginTop: 8, lineHeight: 19 }}>
-            W gotowej apce tu wejdzie prawdziwe AI. Dostanie Twoje {withData} dni danych + {sum.noteCount} notatek
-            i poszuka złożonych układów, efektów opóźnionych i wzorców z notatek — zawsze z etykietą pewności.
-          </Text>
-          <Text style={{ color: C.text, fontSize: 13, marginTop: 10 }}>
-            {withData < 7 ? '📉 Na razie za mało dni — nakarm apkę tydzień-dwa.' : '✅ Masz zaczątek danych — w wersji produkcyjnej poszłoby to do modelu AI.'}
-          </Text>
+      <TouchableOpacity style={[s.aiBtn, aiState === 'loading' && { opacity: 0.6 }]} disabled={aiState === 'loading'} onPress={runAI}>
+        <Text style={s.aiBtnTxt}>{aiState === 'loading' ? '⏳ Analizuję…' : '✨ Przeanalizuj z AI (głębiej)'}</Text>
+      </TouchableOpacity>
+      {aiState && aiState !== 'loading' && (
+        <View style={[s.corr, { borderColor: aiState.error ? C.bad : C.purple }]}>
+          <Text style={s.corrHead}>✨ <Text style={{ fontWeight: '700' }}>Analiza AI</Text></Text>
+          {aiState.error ? (
+            <>
+              <Text style={{ color: C.bad, fontSize: 13, marginTop: 8, lineHeight: 19 }}>{aiState.error}</Text>
+              {!settings.apiKey && <TouchableOpacity onPress={goToSettings}><Text style={{ color: C.accent, marginTop: 8, fontSize: 13 }}>→ Przejdź do Ustawień</Text></TouchableOpacity>}
+            </>
+          ) : (
+            <Text style={{ color: C.text, fontSize: 13, marginTop: 8, lineHeight: 20 }}>{aiState.text}</Text>
+          )}
         </View>
       )}
     </ScrollView>
+  );
+}
+
+/* ==================== USTAWIENIA ==================== */
+function SettingsView({ state, setState, settings, updateSettings, setModal }) {
+  const [busy, setBusy] = useState(false);
+
+  const saveReminders = async (next) => {
+    updateSettings((st) => { st.reminders = next.reminders; });
+    const ok = await applyReminders(next.reminders);
+    if (!ok) Alert.alert('Powiadomienia', 'Nie udało się włączyć — sprawdź uprawnienia w ustawieniach telefonu.');
+  };
+  const toggleReminder = (which, enabled) => {
+    const next = JSON.parse(JSON.stringify(settings));
+    next.reminders[which].enabled = enabled;
+    saveReminders(next);
+  };
+  const setReminderTime = (which, time) => {
+    const next = JSON.parse(JSON.stringify(settings));
+    next.reminders[which].time = time;
+    saveReminders(next);
+  };
+
+  const doExport = async () => {
+    setBusy(true);
+    try {
+      const r = await shareBackup(state);
+      if (!r.ok) Alert.alert('Kopia zapisana', 'Plik: ' + r.uri);
+    } catch (e) { Alert.alert('Błąd eksportu', e.message || String(e)); }
+    setBusy(false);
+  };
+
+  const doImport = () => setModal({
+    title: 'Import kopii danych',
+    fields: [{ id: 'json', label: 'Wklej zawartość pliku kopii (JSON)', multiline: true, placeholder: '{ "version": 1, ... }' }],
+    onSave: (v) => {
+      try {
+        const data = parseImport(v.json || '');
+        Alert.alert('Zastąpić dane?', 'Import nadpisze obecne dane w aplikacji.', [
+          { text: 'Anuluj', style: 'cancel' },
+          { text: 'Zastąp', style: 'destructive', onPress: () => { setState(data); persist(data); Alert.alert('Gotowe', 'Dane wczytane.'); } },
+        ]);
+      } catch (e) { Alert.alert('Nieprawidłowy plik', e.message || String(e)); }
+    },
+  });
+
+  const testNotif = async () => {
+    const ok = await sendTestNotification();
+    if (!ok) Alert.alert('Powiadomienia', 'Brak zgody na powiadomienia.');
+  };
+
+  return (
+    <ScrollView contentContainerStyle={{ paddingBottom: 100, paddingHorizontal: 14 }}>
+      <View style={{ height: 8 }} />
+
+      <SectionTitle title="Analiza AI (Claude)" bare />
+      <View style={s.statBox}>
+        <Text style={s.setLabel}>Klucz API Anthropic</Text>
+        <TextInput style={s.numInput} placeholder="sk-ant-..." placeholderTextColor={C.muted} autoCapitalize="none"
+          secureTextEntry value={settings.apiKey} onChangeText={(t) => updateSettings((st) => { st.apiKey = t.trim(); })} />
+        <Text style={s.setHint}>Klucz trzymany tylko na Twoim telefonie. Model: claude-opus-5. Bez klucza przycisk „Przeanalizuj z AI" nie zadziała.</Text>
+      </View>
+
+      <SectionTitle title="Przypomnienia" bare />
+      <View style={s.statBox}>
+        <ReminderRow label="💊 Suplementy" r={settings.reminders.supps}
+          onToggle={(v) => toggleReminder('supps', v)} onTime={(t) => setReminderTime('supps', t)} />
+        <View style={s.sep} />
+        <ReminderRow label="🌙 Podsumowanie dnia" r={settings.reminders.evening}
+          onToggle={(v) => toggleReminder('evening', v)} onTime={(t) => setReminderTime('evening', t)} />
+        <TouchableOpacity onPress={testNotif}><Text style={{ color: C.accent, fontSize: 13, marginTop: 12 }}>Wyślij testowe powiadomienie</Text></TouchableOpacity>
+      </View>
+
+      <SectionTitle title="Kopia danych" bare />
+      <View style={s.statBox}>
+        <TouchableOpacity style={[s.btn, s.btnPrimary, { marginBottom: 10 }]} disabled={busy} onPress={doExport}>
+          <Text style={{ color: '#08101f', fontWeight: '700' }}>{busy ? 'Eksportuję…' : '⬆ Eksportuj / udostępnij kopię'}</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={[s.btn, s.btnGhost]} onPress={doImport}>
+          <Text style={{ color: C.text, fontWeight: '600' }}>⬇ Importuj z kopii (wklej JSON)</Text>
+        </TouchableOpacity>
+        <Text style={s.setHint}>Eksport otwiera systemowe „Udostępnij" — zapisz plik w chmurze albo wyślij sobie.</Text>
+      </View>
+    </ScrollView>
+  );
+}
+function ReminderRow({ label, r, onToggle, onTime }) {
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 6 }}>
+      <Text style={{ color: C.text, fontSize: 15, flex: 1 }}>{label}</Text>
+      <TextInput style={[s.suppTime, { marginRight: 10 }]} value={r.time} maxLength={5} placeholder="HH:MM"
+        placeholderTextColor={C.muted} onChangeText={onTime} />
+      <Switch value={r.enabled} onValueChange={onToggle} trackColor={{ true: C.accent, false: C.surface2 }} thumbColor="#fff" />
+    </View>
   );
 }
 
@@ -545,6 +664,9 @@ const s = StyleSheet.create({
   statBig: { color: C.text, fontSize: 26, fontWeight: '800' },
   statLbl: { color: C.muted, fontSize: 12, marginTop: 2 },
   statBox: { backgroundColor: C.surface, borderWidth: 1, borderColor: C.border, borderRadius: 14, padding: 14 },
+  setLabel: { color: C.muted, fontSize: 12, marginBottom: 6 },
+  setHint: { color: C.muted, fontSize: 11, marginTop: 8, lineHeight: 16 },
+  sep: { height: 1, backgroundColor: C.border, marginVertical: 8 },
   calGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 5 },
   calCell: { width: '12%', aspectRatio: 1, borderRadius: 6, backgroundColor: C.surface2 },
   bars: { flexDirection: 'row', alignItems: 'flex-end', height: 90, gap: 3 },

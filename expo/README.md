@@ -36,9 +36,19 @@ ale odpalasz ją na telefonie przez **Expo Go**.
 - Statystyki: kafelki, kalendarz 30 dni, scroll wg godziny, radar korelacji z pewnością
 - Dane zapisywane lokalnie (AsyncStorage) — zostają po zamknięciu
 
+## Zakładka Ustawienia ⚙️
+
+- **Analiza AI (Claude)** — wklej swój klucz API Anthropic (`sk-ant-...`). Trzymany tylko
+  lokalnie na telefonie. Wtedy przycisk „Przeanalizuj z AI" w Statystykach wysyła Twoje dane
+  + notatki do modelu `claude-opus-5`, który szuka wzorców — zawsze z etykietą pewności.
+  Klucz wygenerujesz na https://console.anthropic.com (płatne wg zużycia).
+- **Przypomnienia** — codzienne powiadomienia lokalne: o suplementach i o wieczornym
+  podsumowaniu dnia. Ustaw godzinę i przełącznik. (W Expo Go działają powiadomienia lokalne.)
+- **Kopia danych** — eksport do pliku JSON przez systemowe „Udostępnij" (zapis w chmurze /
+  wysyłka do siebie) oraz import przez wklejenie JSON-a. Backup i przenoszenie między telefonami.
+
 ## Następne kroki (pomysły)
 
-- Podłączenie przycisku „Przeanalizuj z AI" pod prawdziwy model (Claude API)
-- Powiadomienia (expo-notifications) — przypomnienie o suplementach / podsumowaniu dnia
-- Natywny picker czasu zamiast pola HH:MM (expo `DateTimePicker`)
-- Eksport / backup danych
+- Natywny picker czasu zamiast pola HH:MM (koło z godzinami) — `@react-native-community/datetimepicker`
+- Import kopii przez wybór pliku (document picker) zamiast wklejania
+- Wykres trendów w czasie (sen/energia tydzień do tygodnia)

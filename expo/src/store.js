@@ -32,6 +32,48 @@ export const DEFAULT_STATE = {
 };
 
 const KEY = 'energy_v1';
+const SETTINGS_KEY = 'energy_settings_v1';
+
+export const DEFAULT_SETTINGS = {
+  apiKey: '',
+  reminders: {
+    supps: { enabled: false, time: '21:00' },
+    evening: { enabled: false, time: '21:30' },
+  },
+};
+
+export async function loadSettings() {
+  try {
+    const raw = await AsyncStorage.getItem(SETTINGS_KEY);
+    if (raw) {
+      const s = JSON.parse(raw);
+      return {
+        ...DEFAULT_SETTINGS,
+        ...s,
+        reminders: { ...DEFAULT_SETTINGS.reminders, ...(s.reminders || {}) },
+      };
+    }
+  } catch (e) {}
+  return JSON.parse(JSON.stringify(DEFAULT_SETTINGS));
+}
+
+export async function saveSettings(settings) {
+  try { await AsyncStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch (e) {}
+}
+
+// ---- Eksport / import ----
+export function exportJSON(state) {
+  return JSON.stringify({ version: 1, exportedAt: new Date().toISOString(), data: state }, null, 2);
+}
+
+export function parseImport(text) {
+  const obj = JSON.parse(text);
+  const data = obj && obj.data ? obj.data : obj; // akceptuj też surowy stan
+  if (!data || !Array.isArray(data.habits) || !Array.isArray(data.supps) || typeof data.logs !== 'object') {
+    throw new Error('Nieprawidłowy format kopii.');
+  }
+  return data;
+}
 
 export async function loadState() {
   try {
