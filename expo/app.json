@@ -1,0 +1,19 @@
+{
+  "expo": {
+    "name": "Energy",
+    "slug": "energy",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#0e1116",
+    "splash": {
+      "backgroundColor": "#0e1116",
+      "resizeMode": "contain"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "ios": { "supportsTablet": true },
+    "android": {
+      "adaptiveIcon": { "backgroundColor": "#0e1116" }
+    }
+  }
+}
