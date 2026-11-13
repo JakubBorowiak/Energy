@@ -1,4 +1,4 @@
-# Posty w formacie „tweet image” – @komunikuj.net_ (partia 1: 16 screenów)
+# Posty w formacie „tweet image” – @komunikuj.net_ (partie 1–2)
 
 Duplikaty z nakładających się screenów usunięte. Wyświetlenia: „tys.” = tysiące.
 
@@ -48,7 +48,31 @@ Duplikaty z nakładających się screenów usunięte. Wyświetlenia: „tys.” 
 | 42 | Nie musisz być miła kosztem siebie. Możesz być uprzejma i stanowcza. Jednocześnie. | 5 641 |
 | 43 | Granica nie jest atakiem. Jest informacją: oto jak chcę być traktowana. | 36 900 |
 | 44 | Wystarczy jedno spokojne zdanie wypowiedziane bez przeprosin. Właśnie tak wygląda granica. | 159 000 |
+| 45 | 'Nie mogę w tym pomóc' działa tak samo jak długie tłumaczenie. Tylko jest krótsze. | 22 200 |
+| 46 | 'Zastanowię się i dam Ci znać' – to pełne zdanie. Nie wymaga uzasadnienia. | 84 900 |
+| 47 | Zmęczenie, które czujesz, często nie pochodzi z nadmiaru pracy. Pochodzi z braku granic. | 10 300 |
+| 48 | Stawianie granic nie niszczy relacji. Niszczy je ich brak. Powoli, przez lata. | 10 700 |
+| 49 | Komunikat Ty ❌: • Nie krzycz na mnie • Nie mów tak do mnie. Komunikat Ja ✅: • Nie rozmawiam w ten sposób • Nie odpowiadam na takie komentarze | 102 000 |
+| 50 | Gdy ktoś Cię obraża, nie odpowiadaj tym samym. Spokojnie powiedz: „Nie odpowiadam na takie komentarze”. Po czym odwróć się i odejdź. | 16 000 |
+| 51 | Ludzie nie wiedzą co to granice. I mają takie prawo. Też kiedyś nie wiedziałaś. | 10 300 |
+| 52 | Bycie miłą, to nie bycie uległą. Bycie asertywną, to nie bycie agresywną. | 41 500 |
+| 53 | Im jesteś milsza, tym gorzej Cię traktują. | 10 900 |
+| 54 | Ile czasu zajmują Ci sprawy innych, a ile Twoje? Czasem problemem nie jest brak czasu. Problemem jest brak granic. | 8 293 |
+| 55 | Tłumaczenie się po odmówieniu, to jak składanie wniosku o pozwolenie na własną granicę. | 8 209 |
+| 56 | Gdy ktoś Cię obraża, powiedz „Nie rozmawiam w ten sposób” i odejdź. | 13 000 |
+| 57 | Przez lata byłaś „taka miła i pomocna”. Odmówiłaś raz i nagle „coś się z tobą stało”. Nie. Coś się zaczęło. | 34 000 |
+| 58 | Długo myślałaś, że jak powiesz „nie”, to kogoś stracisz. A traciłaś siebie za każdym razem, gdy mówiłaś „tak”. (wersja 1) | 17 300 |
+| 59 | Długo myślałaś, że jak powiesz „nie”, to kogoś stracisz. A traciłaś siebie… (wersja 2 – ten sam tekst, osobny post) | 16 700 |
+| 60 | Nie jesteś zupą pomidorową. Nie wszyscy muszą Cię lubić. | 11 700 |
+| 61 | Czułaś się winna, że masz granicę. Oni nie czuli się winni, że ją przekraczali. | 10 600 |
+| 62 | „Nie” to nie jest atak. To informacja. Że wiesz, gdzie kończysz się ty, a zaczyna się ktoś inny. | 19 700 |
+| 63 | Odmawiasz raz i nagle masz „zły charakter”. Ciekawe, gdzie był ten charakter, gdy byłaś dostępna 24/7. | 25 000 |
+| 64 | Na Twoje granice obrażą się Ci, którzy najbardziej korzystali z braku tych granic. | 18 900 |
 
-**Podsumowanie partii 1:** 44 posty · łącznie ≈ 1 586 725 wyświetleń · średnia ≈ 36 100 · mediana 20 400
+**Partia 1 (#1–44):** 44 posty · 1 586 725 wyświetleń · średnia ≈ 36 100 · mediana 20 400
+**Partia 2 (#45–64):** 20 postów · 492 202 wyświetleń · średnia ≈ 24 600 · mediana ≈ 16 350
+**RAZEM:** 64 posty · ≈ 2 078 927 wyświetleń · średnia ≈ 32 500 · mediana 18 800
 
 Pominięte (inny format – ciemne karuzele/wideo, nie tweet): „Nie każde spięcie to przekroczenie…” (5 649), „Zmieniasz pracę. Za pół roku — to samo.” (6 912), „Umiesz odmawiać. Tylko orientujesz się za późno…” (6 987), „To nie tak, że nie umiesz odmawiać. Łapiesz za późno.” (4 912), „Granica raz i nic się nie zmieniło…” (5 733).
+
+Partia 2 – pominięte (inny format): reel ze screenem z Reddita „Illustrious_Two839” (9 119) oraz ciemne karuzele (3–45 tys.).
